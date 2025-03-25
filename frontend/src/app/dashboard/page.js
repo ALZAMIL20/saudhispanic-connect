@@ -1,3 +1,4 @@
+```javascript
 "use client";
 
 import { useState } from "react";
@@ -13,26 +14,77 @@ import {
   Users,
   Building,
   FileText,
-  Clock
+  Clock,
+  Edit,
+  Trash2,
+  Plus,
+  Save,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Navigation from "@/components/Navigation";
 import { users, upcomingEvents, communityPosts } from "@/lib/mockData";
+import { useLanguage } from "@/lib/languageContext";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  // Using the first user as the mock logged-in user
-  const currentUser = users[0];
+  const { t, language } = useLanguage();
   
-  // Calculate days remaining in membership
-  const today = new Date();
-  const expiryDate = new Date(currentUser.membershipExpiry);
-  const daysRemaining = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-  const percentRemaining = (daysRemaining / 365) * 100;
+  // Mock logged-in user - in a real app, this would come from authentication
+  const currentUser = users[3]; // Using the admin user
+  const isAdmin = currentUser.role === "admin";
+  
+  // State for admin event management
+  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    date: "",
+    time: "",
+    location: "",
+    description: "",
+    image: ""
+  });
+  
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setEventForm({
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      description: event.description,
+      image: event.image
+    });
+    setShowEventDialog(true);
+  };
+  
+  const handleAddEvent = () => {
+    setEditingEvent(null);
+    setEventForm({
+      title: "",
+      date: "",
+      time: "",
+      location: "",
+      description: "",
+      image: ""
+    });
+    setShowEventDialog(true);
+  };
+  
+  const handleSaveEvent = () => {
+    // In a real app, this would save to a database
+    console.log("Saving event:", editingEvent ? "Edit" : "New", eventForm);
+    setShowEventDialog(false);
+  };
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,28 +93,31 @@ export default function Dashboard() {
       <div className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Bienvenido/a de nuevo, {currentUser.name}</p>
+            <h1 className="text-3xl font-bold text-[#0F1E4E]">
+              {isAdmin ? t("adminPanel") : t("dashboard")}
+            </h1>
+            <p className="text-gray-600">{t("welcomeBack")}, {currentUser.name}</p>
           </div>
           <div className="mt-4 md:mt-0 flex gap-2">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <Bell className="h-4 w-4" />
-              <span>Notificaciones</span>
+              <span>{t("notifications")}</span>
             </Button>
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <Settings className="h-4 w-4" />
-              <span>Configuración</span>
+              <span>{t("settings")}</span>
             </Button>
           </div>
         </div>
         
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-3 md:grid-cols-5 lg:w-[600px]">
-            <TabsTrigger value="overview">Resumen</TabsTrigger>
-            <TabsTrigger value="membership">Membresía</TabsTrigger>
-            <TabsTrigger value="events">Eventos</TabsTrigger>
-            <TabsTrigger value="community">Comunidad</TabsTrigger>
-            <TabsTrigger value="services">Servicios</TabsTrigger>
+            <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+            {isAdmin && <TabsTrigger value="manageEvents">{t("manageEvents")}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="manageUsers">{t("manageUsers")}</TabsTrigger>}
+            <TabsTrigger value="events">{t("events")}</TabsTrigger>
+            <TabsTrigger value="community">{t("community")}</TabsTrigger>
+            <TabsTrigger value="services">{t("services")}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-6">
@@ -70,7 +125,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="md:col-span-1">
                 <CardHeader className="pb-2">
-                  <CardTitle>Perfil</CardTitle>
+                  <CardTitle>{t("profile")}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center text-center">
                   <div className="relative h-24 w-24 rounded-full overflow-hidden mb-4">
@@ -83,21 +138,25 @@ export default function Dashboard() {
                   </div>
                   <h3 className="text-xl font-bold">{currentUser.name}</h3>
                   <p className="text-gray-500 mb-2">{currentUser.location}</p>
-                  <Badge className="mb-4" variant={currentUser.membershipStatus === "Premium" ? "default" : "outline"}>
-                    {currentUser.membershipStatus}
+                  <Badge className="mb-4" variant={isAdmin ? "default" : "outline"}>
+                    {isAdmin ? "Admin" : t("membershipStatus")}
                   </Badge>
-                  <p className="text-sm text-gray-500">Miembro desde {new Date(currentUser.memberSince).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-500">
+                    {language === "en" ? "Member since" : "Miembro desde"} {new Date(currentUser.memberSince).toLocaleDateString()}
+                  </p>
                 </CardContent>
                 <CardFooter>
                   <Link href="/profile" className="w-full">
-                    <Button variant="outline" className="w-full">Editar Perfil</Button>
+                    <Button variant="outline" className="w-full">
+                      {language === "en" ? "Edit Profile" : "Editar Perfil"}
+                    </Button>
                   </Link>
                 </CardFooter>
               </Card>
               
               <Card className="md:col-span-2">
                 <CardHeader>
-                  <CardTitle>Actividad Reciente</CardTitle>
+                  <CardTitle>{language === "en" ? "Recent Activity" : "Actividad Reciente"}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -105,8 +164,12 @@ export default function Dashboard() {
                       <Calendar className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium">Evento registrado: Noche de Tapas</p>
-                      <p className="text-sm text-gray-500">Hace 2 días</p>
+                      <p className="font-medium">
+                        {language === "en" ? "Event registered: Tapas Night" : "Evento registrado: Noche de Tapas"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {language === "en" ? "2 days ago" : "Hace 2 días"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -114,8 +177,12 @@ export default function Dashboard() {
                       <MessageSquare className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="font-medium">Comentario en: Consejos para recién llegados</p>
-                      <p className="text-sm text-gray-500">Hace 5 días</p>
+                      <p className="font-medium">
+                        {language === "en" ? "Comment on: Tips for newcomers" : "Comentario en: Consejos para recién llegados"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {language === "en" ? "5 days ago" : "Hace 5 días"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -123,56 +190,66 @@ export default function Dashboard() {
                       <Search className="h-5 w-5 text-purple-600" />
                     </div>
                     <div>
-                      <p className="font-medium">Búsqueda en directorio: Médicos pediatras</p>
-                      <p className="text-sm text-gray-500">Hace 1 semana</p>
+                      <p className="font-medium">
+                        {language === "en" ? "Directory search: Pediatricians" : "Búsqueda en directorio: Médicos pediatras"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {language === "en" ? "1 week ago" : "Hace 1 semana"}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="link" className="text-blue-600">Ver toda la actividad</Button>
+                  <Button variant="link" className="text-[#0F1E4E]">
+                    {language === "en" ? "View all activity" : "Ver toda la actividad"}
+                  </Button>
                 </CardFooter>
               </Card>
             </div>
             
             {/* Quick Access */}
-            <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Acceso Rápido</h2>
+            <h2 className="text-2xl font-bold text-[#0F1E4E] mt-8 mb-4">
+              {language === "en" ? "Quick Access" : "Acceso Rápido"}
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link href="/directory">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex flex-col items-center justify-center p-6">
-                    <Search className="h-8 w-8 text-red-600 mb-2" />
-                    <h3 className="font-medium text-center">Buscar en Directorio</h3>
+                    <Search className="h-8 w-8 text-[#0F1E4E] mb-2" />
+                    <h3 className="font-medium text-center">
+                      {language === "en" ? "Search Directory" : "Buscar en Directorio"}
+                    </h3>
                   </CardContent>
                 </Card>
               </Link>
               <Link href="/community">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex flex-col items-center justify-center p-6">
-                    <Users className="h-8 w-8 text-blue-600 mb-2" />
-                    <h3 className="font-medium text-center">Comunidad</h3>
+                    <Users className="h-8 w-8 text-[#0F1E4E] mb-2" />
+                    <h3 className="font-medium text-center">{t("community")}</h3>
                   </CardContent>
                 </Card>
               </Link>
               <Link href="/support">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex flex-col items-center justify-center p-6">
-                    <MessageSquare className="h-8 w-8 text-green-600 mb-2" />
-                    <h3 className="font-medium text-center">Centro de Soporte</h3>
+                    <MessageSquare className="h-8 w-8 text-[#0F1E4E] mb-2" />
+                    <h3 className="font-medium text-center">{t("supportCenter")}</h3>
                   </CardContent>
                 </Card>
               </Link>
               <Link href="/profile">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex flex-col items-center justify-center p-6">
-                    <User className="h-8 w-8 text-purple-600 mb-2" />
-                    <h3 className="font-medium text-center">Mi Perfil</h3>
+                    <User className="h-8 w-8 text-[#0F1E4E] mb-2" />
+                    <h3 className="font-medium text-center">{t("profile")}</h3>
                   </CardContent>
                 </Card>
               </Link>
             </div>
             
             {/* Upcoming Events Preview */}
-            <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Próximos Eventos</h2>
+            <h2 className="text-2xl font-bold text-[#0F1E4E] mt-8 mb-4">{t("upcomingEvents")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingEvents.slice(0, 3).map((event) => (
                 <Card key={event.id} className="overflow-hidden">
@@ -194,127 +271,232 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-600 line-clamp-2">{event.description}</p>
                   </CardContent>
                   <CardFooter>
-                    <Button variant="outline" size="sm" className="w-full">Ver Detalles</Button>
+                    <Button variant="outline" size="sm" className="w-full">
+                      {language === "en" ? "View Details" : "Ver Detalles"}
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
             </div>
           </TabsContent>
           
-          <TabsContent value="membership" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Estado de Membresía</CardTitle>
-                <CardDescription>
-                  Detalles de tu plan actual y beneficios
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold flex items-center gap-2">
-                      <Badge className={currentUser.membershipStatus === "Premium" ? "bg-red-600" : ""}>
-                        {currentUser.membershipStatus}
-                      </Badge>
-                    </h3>
-                    <p className="text-gray-500 mt-1">Válido hasta: {new Date(currentUser.membershipExpiry).toLocaleDateString()}</p>
-                  </div>
-                  <Button>Renovar Membresía</Button>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Tiempo restante</span>
-                    <span className="text-sm font-medium">{daysRemaining} días</span>
-                  </div>
-                  <Progress value={percentRemaining} className="h-2" />
-                </div>
-                
-                <div className="border-t pt-6">
-                  <h4 className="font-bold mb-4">Beneficios de tu membresía</h4>
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-2">
-                      <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Acceso completo al directorio de servicios</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Participación en la comunidad y foros</span>
-                    </li>
-                    {currentUser.membershipStatus === "Premium" && (
-                      <>
-                        <li className="flex items-start gap-2">
-                          <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>Publicación de eventos y servicios</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>Acceso prioritario a eventos exclusivos</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>Descuentos en servicios asociados</span>
-                        </li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-                
-                {currentUser.membershipStatus !== "Premium" && (
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
-                    <h4 className="font-bold mb-2">¿Quieres más beneficios?</h4>
-                    <p className="text-gray-600 mb-4">Actualiza a Premium para disfrutar de todas las ventajas.</p>
-                    <Button>Actualizar a Premium</Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Historial de Pagos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 border-b">
-                    <div>
-                      <p className="font-medium">Renovación Membresía {currentUser.membershipStatus}</p>
-                      <p className="text-sm text-gray-500">15 Mar 2023</p>
+          {/* Admin: Manage Events Tab */}
+          {isAdmin && (
+            <TabsContent value="manageEvents" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-[#0F1E4E]">{t("manageEvents")}</h2>
+                <Button onClick={handleAddEvent} className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("addEvent")}
+                </Button>
+              </div>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{language === "en" ? "Title" : "Título"}</TableHead>
+                        <TableHead>{language === "en" ? "Date" : "Fecha"}</TableHead>
+                        <TableHead>{language === "en" ? "Location" : "Ubicación"}</TableHead>
+                        <TableHead className="text-right">{language === "en" ? "Actions" : "Acciones"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {upcomingEvents.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium">{event.title}</TableCell>
+                          <TableCell>{event.date}</TableCell>
+                          <TableCell>{event.location}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => handleEditEvent(event)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="text-red-500">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              
+              {/* Event Edit/Add Dialog */}
+              <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingEvent ? t("editEvent") : t("addEvent")}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {language === "en" 
+                        ? "Fill in the details for this event. Click save when you're done."
+                        : "Completa los detalles para este evento. Haz clic en guardar cuando hayas terminado."
+                      }
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Title" : "Título"}
+                      </label>
+                      <Input
+                        className="col-span-3"
+                        value={eventForm.title}
+                        onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                      />
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{currentUser.membershipStatus === "Premium" ? "500 SAR" : "200 SAR"}</p>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Pagado</Badge>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Date" : "Fecha"}
+                      </label>
+                      <Input
+                        className="col-span-3"
+                        type="date"
+                        value={eventForm.date}
+                        onChange={(e) => setEventForm({...eventForm, date: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Time" : "Hora"}
+                      </label>
+                      <Input
+                        className="col-span-3"
+                        value={eventForm.time}
+                        onChange={(e) => setEventForm({...eventForm, time: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Location" : "Ubicación"}
+                      </label>
+                      <Input
+                        className="col-span-3"
+                        value={eventForm.location}
+                        onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Image URL" : "URL de Imagen"}
+                      </label>
+                      <Input
+                        className="col-span-3"
+                        value={eventForm.image}
+                        onChange={(e) => setEventForm({...eventForm, image: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-right text-sm font-medium">
+                        {language === "en" ? "Description" : "Descripción"}
+                      </label>
+                      <Textarea
+                        className="col-span-3"
+                        value={eventForm.description}
+                        onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                        rows={4}
+                      />
                     </div>
                   </div>
-                  <div className="flex justify-between items-center p-3 border-b">
-                    <div>
-                      <p className="font-medium">Inscripción Membresía {currentUser.membershipStatus}</p>
-                      <p className="text-sm text-gray-500">15 Mar 2022</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{currentUser.membershipStatus === "Premium" ? "500 SAR" : "200 SAR"}</p>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Pagado</Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowEventDialog(false)}>
+                      {language === "en" ? "Cancel" : "Cancelar"}
+                    </Button>
+                    <Button onClick={handleSaveEvent} className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                      <Save className="h-4 w-4 mr-2" />
+                      {language === "en" ? "Save" : "Guardar"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+          )}
+          
+          {/* Admin: Manage Users Tab */}
+          {isAdmin && (
+            <TabsContent value="manageUsers" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-[#0F1E4E]">{t("manageUsers")}</h2>
+                <Button className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {language === "en" ? "Add User" : "Añadir Usuario"}
+                </Button>
+              </div>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{language === "en" ? "Name" : "Nombre"}</TableHead>
+                        <TableHead>{language === "en" ? "Email" : "Correo"}</TableHead>
+                        <TableHead>{language === "en" ? "Location" : "Ubicación"}</TableHead>
+                        <TableHead>{language === "en" ? "Role" : "Rol"}</TableHead>
+                        <TableHead className="text-right">{language === "en" ? "Actions" : "Acciones"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="relative h-8 w-8 rounded-full overflow-hidden">
+                                <Image 
+                                  src={user.avatar} 
+                                  alt={user.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <span>{user.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.location}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.role === "admin" ? "default" : "outline"}>
+                              {user.role === "admin" 
+                                ? (language === "en" ? "Admin" : "Administrador") 
+                                : (language === "en" ? "Member" : "Miembro")
+                              }
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="text-red-500">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
           
           <TabsContent value="events" className="space-y-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Eventos</h2>
-              <Button>Ver Todos</Button>
+              <h2 className="text-2xl font-bold text-[#0F1E4E]">{t("events")}</h2>
+              <Button className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                {language === "en" ? "View All" : "Ver Todos"}
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -349,8 +531,12 @@ export default function Dashboard() {
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline">Más Información</Button>
-                    <Button>Registrarse</Button>
+                    <Button variant="outline">
+                      {language === "en" ? "More Info" : "Más Información"}
+                    </Button>
+                    <Button className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                      {language === "en" ? "Register" : "Registrarse"}
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -359,10 +545,14 @@ export default function Dashboard() {
           
           <TabsContent value="community" className="space-y-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Comunidad</h2>
+              <h2 className="text-2xl font-bold text-[#0F1E4E]">{t("community")}</h2>
               <div className="flex gap-2">
-                <Button variant="outline">Ver Todos</Button>
-                <Button>Nueva Publicación</Button>
+                <Button variant="outline">
+                  {language === "en" ? "View All" : "Ver Todos"}
+                </Button>
+                <Button className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                  {language === "en" ? "New Post" : "Nueva Publicación"}
+                </Button>
               </div>
             </div>
             
@@ -384,7 +574,7 @@ export default function Dashboard() {
                         <div>
                           <CardTitle className="text-lg">{post.title}</CardTitle>
                           <CardDescription>
-                            Por {author.name} • {new Date(post.date).toLocaleDateString()}
+                            {language === "en" ? "By" : "Por"} {author.name} • {new Date(post.date).toLocaleDateString()}
                           </CardDescription>
                         </div>
                       </div>
@@ -405,7 +595,9 @@ export default function Dashboard() {
                           <span>{post.comments.length}</span>
                         </Button>
                       </div>
-                      <Button variant="outline" size="sm">Ver Comentarios</Button>
+                      <Button variant="outline" size="sm">
+                        {language === "en" ? "View Comments" : "Ver Comentarios"}
+                      </Button>
                     </CardFooter>
                   </Card>
                 );
@@ -415,8 +607,12 @@ export default function Dashboard() {
           
           <TabsContent value="services" className="space-y-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Servicios Destacados</h2>
-              <Button>Ver Directorio Completo</Button>
+              <h2 className="text-2xl font-bold text-[#0F1E4E]">
+                {language === "en" ? "Featured Services" : "Servicios Destacados"}
+              </h2>
+              <Button className="bg-[#0F1E4E] hover:bg-[#0F1E4E]/90">
+                {language === "en" ? "View Full Directory" : "Ver Directorio Completo"}
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -424,117 +620,35 @@ export default function Dashboard() {
                 <div className="relative h-40 w-full">
                   <Image 
                     src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=300&auto=format&fit=crop" 
-                    alt="Servicios Médicos"
+                    alt="Medical Services"
                     fill
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                    <h3 className="text-white text-xl font-bold">Servicios Médicos</h3>
+                    <h3 className="text-white text-xl font-bold">
+                      {language === "en" ? "Medical Services" : "Servicios Médicos"}
+                    </h3>
                   </div>
                 </div>
                 <CardContent className="pt-4">
-                  <p className="text-gray-600 mb-4">Encuentra médicos y especialistas que hablan español en Arabia Saudita.</p>
+                  <p className="text-gray-600 mb-4">
+                    {language === "en" 
+                      ? "Find Spanish-speaking doctors and specialists in Saudi Arabia."
+                      : "Encuentra médicos y especialistas que hablan español en Arabia Saudita."
+                    }
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Medicina General</Badge>
-                    <Badge variant="outline">Pediatría</Badge>
-                    <Badge variant="outline">Ginecología</Badge>
-                    <Badge variant="outline">Psicología</Badge>
+                    <Badge variant="outline">
+                      {language === "en" ? "General Medicine" : "Medicina General"}
+                    </Badge>
+                    <Badge variant="outline">
+                      {language === "en" ? "Pediatrics" : "Pediatría"}
+                    </Badge>
+                    <Badge variant="outline">
+                      {language === "en" ? "Gynecology" : "Ginecología"}
+                    </Badge>
+                    <Badge variant="outline">
+                      {language === "en" ? "Psychology" : "Psicología"}
+                    </Badge>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/directory" className="w-full">
-                    <Button variant="outline" className="w-full">Explorar Servicios Médicos</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-              
-              <Card className="overflow-hidden">
-                <div className="relative h-40 w-full">
-                  <Image 
-                    src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=300&auto=format&fit=crop" 
-                    alt="Gastronomía"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                    <h3 className="text-white text-xl font-bold">Gastronomía</h3>
-                  </div>
-                </div>
-                <CardContent className="pt-4">
-                  <p className="text-gray-600 mb-4">Descubre restaurantes españoles y latinoamericanos en el reino.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Restaurantes</Badge>
-                    <Badge variant="outline">Cafeterías</Badge>
-                    <Badge variant="outline">Tiendas Gourmet</Badge>
-                    <Badge variant="outline">Catering</Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/directory" className="w-full">
-                    <Button variant="outline" className="w-full">Explorar Gastronomía</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-              
-              <Card className="overflow-hidden">
-                <div className="relative h-40 w-full">
-                  <Image 
-                    src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=300&auto=format&fit=crop" 
-                    alt="Educación"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                    <h3 className="text-white text-xl font-bold">Educación</h3>
-                  </div>
-                </div>
-                <CardContent className="pt-4">
-                  <p className="text-gray-600 mb-4">Academias de idiomas, profesores particulares y colegios internacionales.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Clases de Español</Badge>
-                    <Badge variant="outline">Clases de Árabe</Badge>
-                    <Badge variant="outline">Colegios</Badge>
-                    <Badge variant="outline">Tutores</Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/directory" className="w-full">
-                    <Button variant="outline" className="w-full">Explorar Educación</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-              
-              <Card className="overflow-hidden">
-                <div className="relative h-40 w-full">
-                  <Image 
-                    src="https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=300&auto=format&fit=crop" 
-                    alt="Servicios Profesionales"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                    <h3 className="text-white text-xl font-bold">Servicios Profesionales</h3>
-                  </div>
-                </div>
-                <CardContent className="pt-4">
-                  <p className="text-gray-600 mb-4">Abogados, traductores, asesores y otros profesionales hispanohablantes.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Legal</Badge>
-                    <Badge variant="outline">Traducción</Badge>
-                    <Badge variant="outline">Consultoría</Badge>
-                    <Badge variant="outline">Inmobiliaria</Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/directory" className="w-full">
-                    <Button variant="outline" className="w-full">Explorar Servicios Profesionales</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
+                </Car
